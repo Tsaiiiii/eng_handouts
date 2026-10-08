@@ -12,13 +12,17 @@
 @media (prefers-color-scheme:dark){:root{--paper:#121826;--card:#1b2335;--ink:#e8edf7;--mute:#9aa6bf;--line:#303b55;--pen:#7ea6ff;--marker:#7a6500;color-scheme:dark}}
 *{box-sizing:border-box}
 body{margin:0;background:var(--paper);color:var(--ink);font:16px/1.6 var(--zh);padding:32px 16px 48px}
-main{max-width:560px;margin:0 auto;display:flex;flex-direction:column;gap:18px}
+main{max-width:760px;margin:0 auto;display:flex;flex-direction:column;gap:24px}
 h1{font:600 30px/1.2 var(--zh);margin:0}
 h1 span{background:linear-gradient(transparent 55%,var(--marker) 55%);padding:0 4px}
-p{margin:0;color:var(--mute);font-size:14px}
+.cols{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:24px;align-items:start}
+section{display:flex;flex-direction:column;gap:10px;min-width:0}
+h2{font:600 20px/1.3 var(--zh);margin:0;padding-bottom:6px;border-bottom:2px solid var(--ink)}
+h2 small{font:400 13px var(--zh);color:var(--mute);margin-left:8px}
 ul{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:10px}
+li.empty{color:var(--mute);font-size:14px}
 a{display:flex;justify-content:space-between;align-items:center;gap:12px;background:var(--card);border:1.5px solid var(--line);border-radius:12px;
-  padding:16px 18px;color:var(--ink);text-decoration:none;font:600 22px var(--en),var(--zh)}
+  padding:14px 16px;color:var(--ink);text-decoration:none;font:600 20px var(--en),var(--zh);overflow-wrap:anywhere}
 a::after{content:"開始 →";font:600 14px var(--zh);color:var(--pen);white-space:nowrap}
 a:hover,a:focus-visible{border-color:var(--pen);outline:none}
 </style>
@@ -26,36 +30,60 @@ a:hover,a:focus-visible{border-color:var(--pen);outline:none}
 <body>
 <main>
   <h1><span>英文講義</span></h1>
-  <p id="note">選一個單元開始練習。</p>
-  <ul id="list"></ul>
+  <div class="cols">
+    <section><h2>單字<small>Vocabulary</small></h2><ul id="vocab"></ul></section>
+    <section><h2>閱讀<small>Reading</small></h2><ul id="reading"></ul></section>
+  </div>
 </main>
 <script>
-/* 自動列出這個 repo 裡所有的講義檔。上傳新的 Unit_XX.html 後不用改這個檔案。
-   如果自動列表失敗，會改用下面這份手動清單；需要時把新檔名加進去即可。 */
-var MANUAL = ['Unit_01.html'];
+/* 這一頁會自動列出 repo 裡的講義，上傳新檔案後不用改這個檔案。
+
+   分類規則（兩種放法都可以，也可以混用）：
+   1. 用資料夾：放在 reading/ 資料夾裡的是閱讀，放在 vocab/ 資料夾裡的是單字。
+   2. 用檔名：放在最外層、檔名以 Reading 開頭的是閱讀（例如 Reading_01.html），其他都算單字（例如 Unit_01.html）。
+
+   自動列表失敗時，會改用下面的手動清單；需要時把新檔案的路徑加進去即可。 */
+var MANUAL = { vocab: ['Unit_01.html'], reading: [] };
 var OWNER = 'Tsaiiiii', REPO = 'eng_handouts';
 
-if (/\.github\.io$/.test(location.hostname)) {           // 換了帳號或 repo 名稱也能自動對上
+if (/\.github\.io$/.test(location.hostname)) {
   OWNER = location.hostname.split('.')[0];
   REPO = location.pathname.split('/')[1] || REPO;
 }
-function show(files) {
-  var ul = document.getElementById('list'); ul.textContent = '';
-  files.filter(function (f) { return /\.html?$/i.test(f) && !/^index\.html?$/i.test(f); })
-    .sort(function (a, b) { return a.localeCompare(b, undefined, { numeric: true }); })
-    .forEach(function (f) {
+function label(path) {
+  return path.split('/').pop().replace(/\.html?$/i, '').replace(/[_-]+/g, ' ');
+}
+function show(id, paths) {
+  var ul = document.getElementById(id); ul.textContent = '';
+  paths.slice().sort(function (a, b) { return label(a).localeCompare(label(b), undefined, { numeric: true }); })
+    .forEach(function (p) {
       var li = document.createElement('li'), a = document.createElement('a');
-      a.href = encodeURIComponent(f);
-      a.textContent = f.replace(/\.html?$/i, '').replace(/_/g, ' ');
+      a.href = p.split('/').map(encodeURIComponent).join('/');
+      a.textContent = label(p);
       li.append(a); ul.append(li);
     });
-  if (!ul.children.length) document.getElementById('note').textContent = '還沒有講義。';
+  if (!paths.length) { var e = document.createElement('li'); e.className = 'empty'; e.textContent = '還沒有講義'; ul.append(e); }
 }
-show(MANUAL);
-fetch('https://api.github.com/repos/' + OWNER + '/' + REPO + '/contents/')
-  .then(function (r) { if (!r.ok) throw 0; return r.json(); })
-  .then(function (items) { show(items.filter(function (x) { return x.type === 'file'; }).map(function (x) { return x.name; })); })
-  .catch(function () {});
+function isPage(name) { return /\.html?$/i.test(name) && !/^index\.html?$/i.test(name); }
+function list(dir) {
+  return fetch('https://api.github.com/repos/' + OWNER + '/' + REPO + '/contents/' + dir)
+    .then(function (r) { if (!r.ok) throw 0; return r.json(); });
+}
+
+show('vocab', MANUAL.vocab); show('reading', MANUAL.reading);
+
+list('').then(function (root) {
+  var out = { vocab: [], reading: [] }, jobs = [];
+  root.forEach(function (x) {
+    if (x.type === 'file' && isPage(x.name)) out[/^reading/i.test(x.name) ? 'reading' : 'vocab'].push(x.name);
+    if (x.type === 'dir' && /^(vocab|reading)$/i.test(x.name)) {
+      jobs.push(list(x.name).then(function (items) {
+        items.forEach(function (f) { if (f.type === 'file' && isPage(f.name)) out[x.name.toLowerCase()].push(x.name + '/' + f.name); });
+      }));
+    }
+  });
+  return Promise.all(jobs).then(function () { show('vocab', out.vocab); show('reading', out.reading); });
+}).catch(function () {});
 </script>
 </body>
 </html>
