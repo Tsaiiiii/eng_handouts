@@ -47,8 +47,12 @@ details.edit summary{cursor:pointer;font-weight:600}
 
 /* ---- handout ---- */
 .ho{display:flex;flex-direction:column;gap:16px}
-.ho-head{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:baseline;gap:8px}
-.ho-head h2{font:600 24px/1.2 var(--en),var(--zh);margin:0}
+/* 上方 [← 講義目錄]　標題置中　[換人]，和閱讀講義一樣 */
+.ho-head{display:grid;grid-template-columns:1fr auto 1fr;align-items:center;gap:8px}
+.ho-head .c{text-align:center;min-width:0}
+.ho-head h2{font:600 24px/1.2 var(--en),var(--zh);margin:0;overflow-wrap:anywhere}
+.ho-head .r{justify-self:end}
+@media (max-width:520px){.ho-head{grid-template-columns:1fr 1fr}.ho-head .c{grid-column:1/-1;grid-row:2}}
 .tabs{display:grid;grid-template-columns:repeat(auto-fit,minmax(96px,1fr));gap:6px}
 .tabs button{background:var(--card);border:1.5px solid var(--line);border-radius:10px;padding:8px 4px;font-size:15px}
 .tabs button[aria-selected=true]{border-color:var(--pen);color:var(--pen);font-weight:700;box-shadow:inset 0 -3px 0 var(--pen)}
@@ -57,6 +61,8 @@ details.edit summary{cursor:pointer;font-weight:600}
 .count{font-size:13px;color:var(--mute);letter-spacing:.04em}
 .bar{height:6px;background:var(--line);border-radius:3px;overflow:hidden}
 .bar i{display:block;height:100%;background:var(--pen);transition:width .25s}
+.count.fix{color:var(--ink);font-weight:700}
+.bar.fix i{background:var(--marker)}
 .word{font:600 clamp(38px,11vw,58px)/1.1 var(--en);overflow-wrap:anywhere}
 .word span,.hl{background:linear-gradient(transparent 55%,var(--marker) 55%);padding:0 4px}
 .kk{font-family:"Segoe UI","Lucida Sans Unicode",sans-serif;color:var(--mute)}
@@ -91,6 +97,7 @@ details.edit summary{cursor:pointer;font-weight:600}
 .fb{font-size:16px;font-weight:600}
 .fb.ok{color:var(--ok)} .fb.no{color:var(--bad)}
 .exp{font-size:15px;color:var(--mute)}
+form.stage{min-height:0}form.stage .type-in{flex:none}
 .type-in{flex:1 1 180px;min-width:0;font:500 22px var(--en);background:var(--paper);border:0;border-bottom:3px solid var(--ink);padding:6px 4px;color:var(--ink)}
 .rtitle{font:600 24px/1.3 var(--en),var(--zh)}
 .para{font:400 18px/1.85 var(--en),var(--zh);margin:0}
@@ -107,7 +114,7 @@ details.edit summary{cursor:pointer;font-weight:600}
 @media (prefers-reduced-motion:reduce){.shake{animation:none}.bar i{transition:none}}
 .end{text-align:center;display:flex;flex-direction:column;gap:12px;align-items:center;margin:auto}
 .end b{font:600 44px var(--en)}
-</style></head><body><div class="wrap"><div class="ho" id="ho"></div></div><script>window.__CFG={"log":"","name":""}</script><script>function mountHandout(root, data){
+</style></head><body><div class="wrap"><div class="ho" id="ho"></div></div><script>window.__CFG={"log":"https://script.google.com/macros/s/AKfycbxQfNaZ9VYbyEA62i0rtrSW58h0vhLVZcgFnbWGu8HOv6bLTKGxwtv8BUjGmIZDi-8JfQ/exec","name":""}</script><script>function mountHandout(root, data){
   var W=data.words||[], EX=data.exercises||[], KEY='ho:'+data.title;
   function el(t,c,x){var e=document.createElement(t);if(c)e.className=c;if(x!=null)e.textContent=x;return e}
   function shuffle(a){a=a.slice();for(var i=a.length-1;i>0;i--){var j=Math.floor(Math.random()*(i+1)),t=a[i];a[i]=a[j];a[j]=t}return a}
@@ -115,16 +122,20 @@ details.edit summary{cursor:pointer;font-weight:600}
   var canSay=('speechSynthesis' in window);
   function S(w){return w.senses&&w.senses.length?w.senses:[{pos:w.pos,zh:w.zh,ex:w.example?[{en:w.example,zh:w.example_zh}]:[]}]}
   function z(w){return S(w)[0].zh||''}
-  var done={};try{done=JSON.parse(localStorage.getItem(KEY)||'{}')}catch(e){}
+  var done={};
   /* 作答紀錄：下載的講義裡有 window.__CFG={log:'Apps Script 網址',name:'固定學生名字'}；學生名字和單字、閱讀講義共用 eng-student */
   var CFG=window.__CFG||null,sess,LOG=data.log||(CFG&&CFG.log?{url:CFG.log,name:CFG.name||''}:null),QK='ho-q:'+data.title,Q=[],busy=0;
   try{Q=JSON.parse(localStorage.getItem(QK)||'[]')}catch(e){}
   var NK='eng-student',who=(LOG&&LOG.name)||'',askWho=!!(LOG&&LOG.url&&!LOG.name);
   if(!who){try{who=localStorage.getItem(NK)||localStorage.getItem('ho-student')||''}catch(e){}}
+  /* 打勾（完成的關卡）每位學生分開記，換人後是新的進度 */
+  function dkey(){return KEY+(who?'@'+who:'')}
+  function loadDone(){done={};try{done=JSON.parse(localStorage.getItem(dkey())||'{}')}catch(e){}}
+  loadDone();
   function askName(){stage.textContent='';var f=el('form','end'),inp=el('input','type-in'),b=el('button','btn','開始');
     inp.setAttribute('aria-label','你的名字');inp.value=who;inp.autocomplete='off';
     f.append(el('div','zh','你是誰？'),el('div','mute','輸入你的名字或暱稱，老師才知道這是誰的練習紀錄'),inp,b);
-    f.onsubmit=function(e){e.preventDefault();var v=inp.value.trim();if(!v)return;who=v;try{localStorage.setItem(NK,v)}catch(x){}
+    f.onsubmit=function(e){e.preventDefault();var v=inp.value.trim();if(!v)return;who=v;try{localStorage.setItem(NK,v)}catch(x){}loadDone();
       whoBtn.textContent=who+'（換人）';reset();cur=TABS[0][0];drawTabs();TABS[0][2]()};
     stage.append(f);inp.focus({preventScroll:true})}
   function reset(){sess={t:Date.now(),wrong:[],hint:0}}
@@ -138,11 +149,17 @@ details.edit summary{cursor:pointer;font-weight:600}
       Q.push({t:new Date().toISOString(),name:who||'未填名字',kind:'單字',unit:data.title,act:act,right:r.right,total:r.total,miss:r.miss||0,hint:sess.hint,
         secs:Math.round((Date.now()-sess.t)/1000),wrong:sess.wrong.join('、')});saveQ();flush()}
     reset()}
-  function mark(id){done[id]=1;try{localStorage.setItem(KEY,JSON.stringify(done))}catch(e){}drawTabs()}
+  function mark(id){done[id]=1;try{localStorage.setItem(dkey(),JSON.stringify(done))}catch(e){}drawTabs()}
   function hl(text,word){var p=el('span');var re=new RegExp('\\b'+word.replace(/[^\w ]/g,'').split(' ')[0]+'[a-z]*','i');var m=re.exec(text);
     if(!m){p.textContent=text;return p}
     p.append(text.slice(0,m.index));p.append(el('span','hl',m[0]));p.append(text.slice(m.index+m[0].length));return p}
   function sayBtn(t){var b=el('button','btn ghost','聽發音');b.onclick=function(){say(t)};b.hidden=!canSay;return b}
+  /* 第一輪照題數走；答錯的題目留到最後，用另一條「訂正」進度條，學生看得到還剩幾題 */
+  function stepHead(it,n,total,queue,fixT){if(!it.retry)return progress(n,total);
+    var j=fixT-queue.length,f=document.createDocumentFragment();f.append(el('div','count fix','訂正答錯的題目　第 '+j+' / '+fixT+' 題'));
+    var b=el('div','bar fix'),x=el('i');x.style.width=((j-1)/fixT*100)+'%';b.append(x);f.append(b);return f}
+  function nextLabel(it,queue){if(!queue.length)return '看成績';
+    if(!it.retry&&queue.every(function(q){return q.retry}))return '開始訂正答錯的 '+queue.length+' 題';return '下一題'}
   function progress(i,n){var f=document.createDocumentFragment();f.append(el('div','count','第 '+Math.min(i+1,n)+' / '+n+' 題'));var b=el('div','bar'),x=el('i');x.style.width=(i/n*100)+'%';b.append(x);f.append(b);return f}
   function finish(id,msg,score,again,r){if(r)report(id,r);stage.textContent='';var d=el('div','end');d.append(el('b',null,score),el('div','zh',msg));var b=el('button','btn','再練一次');b.onclick=again;d.append(b);stage.append(d);mark(id)}
 
@@ -154,8 +171,11 @@ details.edit summary{cursor:pointer;font-weight:600}
   var cur=TABS[0][0];
   root.textContent='';
   var head=el('div','ho-head');var whoBtn=el('button','btn ghost',(who||'填名字')+'（換人）');whoBtn.hidden=!askWho;whoBtn.onclick=askName;
-  if(CFG){var home=el('a','btn ghost','← 講義目錄');home.href=/\/(vocab|reading)\/[^\/]*$/.test(location.pathname)?'../':'./';head.append(home)}
-  head.append(el('h2',null,data.title),el('div','mute',W.length+' 個單字'),whoBtn);
+  var hL=el('div'),hC=el('div','c'),hR=el('div','r');
+  if(CFG){var hm=/\/(vocab|reading)\/[^\/]*$/.test(location.pathname)?'../':'./',home=el('a','btn ghost','← 講義目錄');home.href=hm;hL.append(home);
+    if(!document.querySelector('link[rel=icon]'))['icon','apple-touch-icon'].forEach(function(r){var l=document.createElement('link');l.rel=r;l.href=hm+'eng.png';document.head.append(l)})}
+  hC.append(el('h2',null,data.title),el('div','mute',W.length+' 個單字'));hR.append(whoBtn);
+  head.append(hL,hC,hR);
   var tabs=el('div','tabs');tabs.setAttribute('role','tablist');
   var stage=el('div','stage');
   root.append(head,tabs,stage);
@@ -217,18 +237,18 @@ details.edit summary{cursor:pointer;font-weight:600}
         else{miss++;b.classList.remove('shake');void b.offsetWidth;b.classList.add('shake');note(pick.w.word)}};R.append(b)});
       cols.append(L,R);stage.append(cols)})()}
 
-  function ask(id,items,again,endMsg){var queue=items.slice(),total=items.length,n=0,right=0;
+  function ask(id,items,again,endMsg){var queue=items.slice(),total=items.length,n=0,right=0,fixT=0;
     (function next(){if(!queue.length)return finish(id,endMsg(right,total),right+' / '+total,again,{right:right,total:total});
-      var it=queue.shift();stage.textContent='';stage.append(progress(n,total));
+      var it=queue.shift();stage.textContent='';stage.append(stepHead(it,n,total,queue,fixT));
       it.head.forEach(function(x){stage.append(x())});
       var opts=el('div','opts'),fb=el('div'),nav=el('div','nav');
       it.options.forEach(function(o){var b=el('button','opt'+(it.en?' en':''),o);b.onclick=function(){
         [].forEach.call(opts.children,function(c){c.disabled=true;if(c.textContent===it.answer)c.classList.add('right')});
         var ok=o===it.answer;if(ok){if(!it.retry)right++;fb.className='fb ok';fb.textContent='答對了！'}
-        else{note((it.label||it.answer)+'→'+o);b.classList.add('wrong');fb.className='fb no';fb.textContent='正確答案是：'+it.answer;if(!it.retry){it.retry=1;queue.push(it)}}
+        else{note((it.label||it.answer)+'→'+o);b.classList.add('wrong');fb.className='fb no';fb.textContent='正確答案是：'+it.answer;if(!it.retry){it.retry=1;fixT++;queue.push(it);fb.textContent+='（這題最後會再練一次）'}}
         if(it.explain)stage.insertBefore(el('div','exp',it.explain),nav);
         if(it.speak)say(it.speak);
-        if(ok||it.retry>1||true){var nb=el('button','btn',queue.length?'下一題':'看成績');nb.onclick=function(){if(!it.counted){it.counted=1;n++}next()};nav.append(nb);nb.focus()}};opts.append(b)});
+        if(ok||it.retry>1||true){var nb=el('button','btn',nextLabel(it,queue));nb.onclick=function(){if(!it.counted){it.counted=1;n++}next()};nav.append(nb);nb.focus()}};opts.append(b)});
       stage.append(opts,fb,nav)})()}
 
   function quiz(){ask('quiz',shuffle(W).map(function(w){
@@ -265,18 +285,18 @@ details.edit summary{cursor:pointer;font-weight:600}
       if(!x.en||!x.zh||x.en.indexOf('\n')>=0)return;var m=new RegExp('\\b'+w.word.replace(/[^\w ]/g,'').split(' ')[0]+'[a-z]*','i').exec(x.en);
       if(m)pool.push({q:x.en.slice(0,m.index)+'____'+x.en.slice(m.index+m[0].length),zh:x.zh,answer:m[0],explain:w.word+'：'+(se.zh||''),src:'例句填空'})})})});
     items=items.concat(shuffle(pool).slice(0,10));
-    var queue=items.slice(),total=items.length,n=0,right=0;
+    var queue=items.slice(),total=items.length,n=0,right=0,fixT=0;
     (function next(){if(!queue.length)return finish('basic',right===total?'全部都寫對了！':'寫錯的字再多練幾次',right+' / '+total,basic,{right:right,total:total});
-      var it=queue.shift();stage.textContent='';stage.append(progress(n,total),el('div','count',it.src),el('div','q',it.q),el('div','mute',it.zh||''));
+      var it=queue.shift();stage.textContent='';stage.append(stepHead(it,n,total,queue,fixT),el('div','count',it.src),el('div','q',it.q),el('div','mute',it.zh||''));
       var row=el('div','nav'),inp=el('input','type-in'),go=el('button','btn','對答案'),hint=el('button','btn ghost','提示'),fb=el('div'),nav=el('div','nav');
       inp.setAttribute('aria-label','填入答案');inp.autocapitalize='off';inp.autocomplete='off';inp.spellcheck=false;
       hint.onclick=function(){fb.className='mute';fb.textContent='第一個字母是 '+it.answer.charAt(0)+'，一共 '+it.answer.length+' 個字母';if(!it.hinted)sess.hint++;it.hinted=1;inp.focus()};
       function check(){if(!inp.value.trim())return;inp.disabled=go.disabled=hint.disabled=true;
         var ok=inp.value.trim().toLowerCase()===it.answer.toLowerCase();
         if(ok){if(!it.retry)right++;fb.className='fb ok';fb.textContent='答對了！'}
-        else{note(it.answer+'→'+inp.value.trim());fb.className='fb no';fb.textContent='正確答案是：'+it.answer;if(!it.retry){it.retry=1;queue.push(it)}}
+        else{note(it.answer+'→'+inp.value.trim());fb.className='fb no';fb.textContent='正確答案是：'+it.answer;if(!it.retry){it.retry=1;fixT++;queue.push(it);fb.textContent+='（這題最後會再練一次）'}}
         if(it.explain)stage.insertBefore(el('div','exp',it.explain),nav);
-        var nb=el('button','btn',queue.length?'下一題':'看成績');nb.onclick=function(){if(!it.counted){it.counted=1;n++}next()};nav.append(nb);nb.focus()}
+        var nb=el('button','btn',nextLabel(it,queue));nb.onclick=function(){if(!it.counted){it.counted=1;n++}next()};nav.append(nb);nb.focus()}
       go.onclick=check;inp.onkeydown=function(e){if(e.key==='Enter')check()};
       row.append(inp,go,hint);stage.append(row,fb,nav);inp.focus({preventScroll:true})})()}
 
@@ -293,9 +313,12 @@ details.edit summary{cursor:pointer;font-weight:600}
     var key=await crypto.subtle.deriveKey({name:'PBKDF2',salt:bytes(P.s),iterations:200000,hash:'SHA-256'},km,{name:'AES-GCM',length:256},false,['decrypt']);
     var pt=await crypto.subtle.decrypt({name:'AES-GCM',iv:bytes(P.i)},key,bytes(P.c));
     mountHandout(root,JSON.parse(new TextDecoder().decode(pt)));try{localStorage.setItem(KEY,pw);localStorage.setItem(SK,pw)}catch(e){}}
+  var hm=/\/(vocab|reading)\/[^\/]*$/.test(location.pathname)?'../':'./';
+  if(window.__CFG&&!document.querySelector('link[rel=icon]'))['icon','apple-touch-icon'].forEach(function(r){var l=document.createElement('link');l.rel=r;l.href=hm+'eng.png';document.head.append(l)});
   function form(msg){root.textContent='';var st=el('form','stage'),inp=el('input','type-in'),b=el('button','btn','打開講義'),fb=el('div','fb no',msg||'');
     inp.type='password';inp.setAttribute('aria-label','講義密碼');inp.autocomplete='off';
-    st.append(el('div','rtitle',title),el('div','mute','請輸入講義密碼（輸一次就好，之後同一個密碼的講義會自動打開）'),inp,b,fb);
+    if(window.__CFG){var hd=el('div','ho-head'),a=el('a','btn ghost','← 講義目錄'),c=el('div','c');a.href=hm;var l=el('div');l.append(a);c.append(el('h2',null,title));hd.append(l,c,el('div'));root.append(hd)}
+    st.append(el('div','mute','請輸入講義密碼（輸一次就好，之後同一個密碼的講義會自動打開）'),inp,b,fb);
     st.onsubmit=function(e){e.preventDefault();if(!inp.value)return;b.disabled=true;open(inp.value).catch(function(){form('密碼不對，再試一次')})};
     root.append(st);inp.focus()}
   if(!window.crypto||!crypto.subtle){root.textContent='這個瀏覽器無法打開上鎖的講義，請用 Safari 或 Chrome 開啟連結。';return}

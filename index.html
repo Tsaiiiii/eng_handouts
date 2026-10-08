@@ -5,6 +5,8 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="robots" content="noindex,nofollow">
 <title>英文講義</title>
+<link rel="icon" href="eng.png">
+<link rel="apple-touch-icon" href="eng.png">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600&display=swap">
 <style>
 :root{--paper:#f3f6fb;--card:#fff;--ink:#1c2740;--mute:#5d6a85;--line:#d5ddec;--pen:#2456c9;--marker:#ffe066;
@@ -14,6 +16,8 @@
 body{margin:0;background:var(--paper);color:var(--ink);font:16px/1.6 var(--zh);padding:32px 16px 48px}
 main{max-width:760px;margin:0 auto;display:flex;flex-direction:column;gap:24px}
 h1{font:600 30px/1.2 var(--zh);margin:0}
+h1{display:flex;align-items:center;gap:12px}
+h1 img{width:44px;height:44px}
 h1 span{background:linear-gradient(transparent 55%,var(--marker) 55%);padding:0 4px}
 .cols{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:24px;align-items:start}
 section{display:flex;flex-direction:column;gap:10px;min-width:0}
@@ -38,7 +42,7 @@ a:hover,a:focus-visible{border-color:var(--pen);outline:none}
 </head>
 <body>
 <main>
-  <h1><span>英文講義</span></h1>
+  <h1><img src="eng.png" alt=""><span>英文講義</span></h1>
   <section class="me" id="me" aria-label="學生資料"></section>
   <div class="cols">
     <section><h2>單字<small>Vocabulary</small></h2><ul id="vocab"></ul></section>
@@ -53,7 +57,7 @@ a:hover,a:focus-visible{border-color:var(--pen);outline:none}
    2. 用檔名：放在最外層、檔名以 Reading 開頭的是閱讀（例如 Reading_01.html），其他都算單字（例如 Unit_01.html）。
 
    自動列表失敗時，會改用下面的手動清單；需要時把新檔案的路徑加進去即可。 */
-var MANUAL = { vocab: ['vocab/Unit_01.html'], reading: ['reading/第一週-閱讀講義.html'] };
+var MANUAL = { vocab: ['vocab/Unit_01.html'], reading: ['reading/Week1.html'] };
 var OWNER = 'Tsaiiiii', REPO = 'eng_handouts';
 
 if (/\.github\.io$/.test(location.hostname)) {
@@ -93,7 +97,7 @@ function me(edit) {
 me();
 
 function label(path) {
-  return path.split('/').pop().replace(/\.html?$/i, '').replace(/[_-]+/g, ' ');
+  return path.split('/').pop().replace(/\.html?$/i, '').replace(/[_-]+/g, ' ').replace(/([a-z])(\d)/gi, '$1 $2');
 }
 function show(id, paths) {
   var ul = document.getElementById(id); ul.textContent = '';
