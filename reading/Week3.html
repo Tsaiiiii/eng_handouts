@@ -1,4 +1,4 @@
-<!doctype html><html lang="zh-Hant"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Week 3 閱讀練習</title><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Lexend:wght@400;500;600;700&family=Noto+Sans+TC:wght@400;500;700&display=swap"><style>body{margin:0}img{max-width:100%}[hidden]{display:none!important}
+<!doctype html><html lang="zh-Hant"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Week 3 閱讀練習</title><meta name="description" content="Week 3 英文閱讀練習。打開後輸入老師給的講義密碼。"><meta property="og:title" content="Week 3 閱讀練習"><meta property="og:description" content="英文閱讀練習。打開後輸入老師給的講義密碼。"><meta name="robots" content="noindex,nofollow"><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Lexend:wght@400;500;600;700&family=Noto+Sans+TC:wght@400;500;700&display=swap"><style>body{margin:0}img{max-width:100%}[hidden]{display:none!important}
 /* 版面：單欄講義。上方選週、選篇；每篇依序是 單字 → 文章 → 題目。螢光筆黃只用在單字。 */
 :root{
   --bg:#f2f6fa; --card:#ffffff; --ink:#17253a; --muted:#5a6a80; --line:#d5dee9;
@@ -123,21 +123,10 @@ select{border:1.5px solid var(--line);background:var(--card);border-radius:8px;p
 </style></head><body><div class="wrap">
   <div class="top">
     <h1>閱讀練習</h1>
-    <button class="btn ghost" id="teachBtn" hidden="">老師模式</button>
+    <button class="btn ghost" id="teachBtn" hidden=""></button>
   </div>
 
-  <section class="panel" id="maker" hidden="">
-    <h3>新增一週的講義</h3>
-    <div class="meta">選這週的 PDF（或頁面照片），Claude 會讀每一頁，做出組織圖、單字、逐句翻譯和題目解析。書上若有答案和詳解，會直接照抄書上的。學生交卷後才看得到這些內容。一頁大約需要半分鐘到一分鐘。</div>
-    <div class="field"><label for="wkName">這週的名稱</label><input id="wkName" type="text" maxlength="30" placeholder="例如：Week 2"></div>
-    <div class="field"><label for="wkFile">閱讀文章檔案</label><input id="wkFile" type="file" accept="application/pdf,image/jpeg,image/png" multiple=""></div>
-    <div class="row">
-      <button class="btn primary" id="makeBtn">開始製作</button>
-      <button class="btn" id="stopBtn" hidden="">停止</button>
-    </div>
-    <div id="makeBar" class="bar" hidden=""><i style="width:0"></i></div>
-    <ul class="log" id="makeLog"></ul>
-  </section>
+  <section id="maker" hidden><input id="wkName"><input id="wkFile" type="file"><button id="makeBtn"></button><button id="stopBtn"></button><div id="makeBar"><i></i></div><ul id="makeLog"></ul></section>
 
   <div class="row" id="weeks"></div>
   <main id="main" class="sec"><div class="empty">正在載入講義…</div></main>
